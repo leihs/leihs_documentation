@@ -19,7 +19,6 @@
 
 ## Idea
 
-* Use PG trigger ON CREATE, UPDATE, DELETE and TRUNCATE.
 
 * Shadow tables are posible but they are very far from what we use now.
     They seem to cause more expenditure in the UI/UX.
