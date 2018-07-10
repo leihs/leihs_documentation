@@ -46,21 +46,37 @@ Proposedand and partly implemented changes for Refactoring (Leihs v5)
 
 * simplify authentication code and methods: 
 
-  * rewrite Password Authentication ✓ 
+  * rewrite password authentication ✓ 
 
-  * add Switch/AAI authentication, maybe this should (have) be(en) an external service ✓
+  * add Switch/AAI authentication ✓
 
-  * add e-mail authentication:
-    * very cheap to implement (see ^email1)
+    CONS:
+
+    * Switch/AAI configuration is difficult and very time consuming
+    * security: server must be configured very deligent 
+    * idear goes against the grain of leihs (similar to LDAP)
+    * no real sign-off 
+    * I would not integrate it again in leihs
+    * maybe this should (have) be(en) an external service 
+
+  * add e-mail authentication, OPEN ?
+    * very cheap to implement 
     * needs no additional setup from the administrator (email setup is required at any rate)
     * quite secure
     * SIMPLE and AVAILABLE
 
-  * add LDAP authentication (maybe) 
+  * add LDAP authentication, OPEN ?
 
     * full featured LDAP authentication is out of scope (online like Gitlab)
     * LDAP user and group management is out of scope (complexity and security, Basel)
     * simple bind authentication is feasible (see OWASP)
+
+    PROS: 
+
+    * "best practice" and "industry standard" 
+    * marketing 
+    * project managers can fill check mark
+
 
     CONS:
 
@@ -68,12 +84,10 @@ Proposedand and partly implemented changes for Refactoring (Leihs v5)
       * org. passwords pass through leihs, logging, leaks
       * LDAP injection
 
+    * if LDAP auth would not exist there is no way it would be accepted with 
+      todays accepted security standards 
+
     * without user and group management LDAP authentication might not be much useful
-
-    PROS: 
-
-    * marketing 
-    * project managers can fill check mark
 
 
   * guide user through authentication 
