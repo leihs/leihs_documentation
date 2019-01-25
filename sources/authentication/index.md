@@ -1,145 +1,82 @@
-Authentication in Leihs
-=======================
+Authentication in _leihs_
+=========================
 
-Known Problems in Leihs v3
---------------------------
+The authentication within _leihs_ has been rewritten in version 5. 
+The new design provides two internal authentication methods:
 
-* overcomplicated implementation, `authentication_systems` 
+1. password authentication (rewritten and available as of version 5.0) ,
+2. e-mail authentication (planned for version 5.1), and 
 
-    * complexity has no benefits
-    * obscure, security reviews are quite hard
+any number of _external authentication systems_ which can be bound to leihs via
+an API which is similar to [OAuth](https://oauth.net/). 
 
-* password authentication hash method is "broken"
+Before version 5.0 binding custom authentication systems to _leihs_ required
+custom code to be integrated within leihs. Such an approach is neither
+necessary nor intended from _leihs_ 5.0 on.
 
-* danger of stealing cookies 
-
-* combines authentication and user management
-
-    * goes strongly against the idea of IAM 
-    * security issues 
-    * leads to fragmentation 
-    * complicated practically untested custom code (e.g. HSLUControler)
+The reminder of this document discusses mostly _external authentication
+systems_. 
 
 
-Fixes in Leihs v4
------------------
+## _External Authentication Systems_ in _leihs_
 
-* Most of the cookies issues. 
-* Patched security issues we became aware of.
+An external authentication system consist of an **HTTP service** and a
+corresponding **configuration in _leihs_**. The role of the external service is to
+assert that a user who desires to sign in to _leihs_ is who he or she claims to
+be and forward this assertion to _leihs_. 
 
-Relly nothing else. 
+### The Flow of Data during a Sign-in Process as an Example
 
+The following steps are carried out during a successful sign in process when
+using an _external authentication sytem_. 
 
-Proposedand and partly implemented changes for Refactoring (Leihs v5)
----------------------------------------------------------------------
+1. A currently not signed in user provides his identity (either in the form of
+   the `email`, `login`, or `org_id`) and requests to sign in.
 
-* Seperate authentication and user (as well as group) management. 
+2. Leihs evaluates this requests and offers available authentication methods 
+  for the particular user. 
 
-  * implement the core idea behind IAM
+3. The user proceeds for example with an external authentication system.
 
-  * enable requested features (in the future)
+4. _leihs_ prepares an _authentication token_ and forwards the user to the 
+  external service via an HTTP redirect (sending the token via URL parameters).  
 
-  * user and group management via sync service and API ✓
+5. The external authentication system will (in general first) _verify origin_
+   and _validity_ of the token. 
+   
+6. The external service performs authentication of he user.
 
-  * seperate authentication into own service (NEW PROPOSAL)
+7. The external service creates a further token which proves successful
+   authentication and redirects the user back to _leihs_. 
 
+8. _leihs_ will _verify origin_ and _validity_ of the token and sign the user in.
 
-* simplify authentication code and methods: 
-
-  * rewrite password authentication ✓ 
-
-  * add Switch/AAI authentication ✓
-
-    CONS:
-
-    * Switch/AAI configuration is difficult and very time consuming
-    * security: server must be configured very deligent 
-    * idear goes against the grain of leihs (similar to LDAP)
-    * no real sign-off 
-    * I would not integrate it again in leihs
-    * maybe this should (have) be(en) an external service 
-
-  * add e-mail authentication, OPEN ?
-    * very cheap to implement 
-    * needs no additional setup from the administrator (email setup is required at any rate)
-    * quite secure
-    * SIMPLE and AVAILABLE
-
-  * add LDAP authentication, OPEN ?
-
-    * full featured LDAP authentication is out of scope (online like Gitlab)
-    * LDAP user and group management is out of scope (complexity and security, Basel)
-    * simple bind authentication is feasible (see OWASP)
-
-    PROS: 
-
-    * "best practice" and "industry standard" 
-    * marketing 
-    * project managers can fill check mark
+The procedure state above is the most general case. _leihs_ can shortcut steps
+and follow simpler procedures in some cases. 
 
 
-    CONS:
+### Some Key Properties of (not only external) authentication with _leihs_
 
-    * there is a high(er) security requirement involved with LDAP 
-      * org. passwords pass through leihs, logging, leaks
-      * LDAP injection
+* An external authentication system is bound to leihs with a public/private key
+  pair (PKI) and via an URL. 
 
-    * if LDAP auth would not exist there is no way it would be accepted with 
-      todays accepted security standards 
+* For every external there is also a public/private key pair in _leihs_.  
 
-    * without user and group management LDAP authentication might not be much useful
+* This allows the external authentication system to be controlled and run 
+  independently of leihs. This setup (and the communication based purely 
+  on redirects) _tolerates firewalls_. 
 
+* It is possible to use one leihs key pair for multiple external authentication
+  systems. It is also possible to use the same key pair in leihs and in the 
+  external authentication system. The latter case is equivalent to using a
+  shared secret between leihs and the external authentication system which
+  might be enough in some simple cases.
 
-  * guide user through authentication 
-    * two-step: first request email, than present available options
-    * recently implemented and enforced by: google, microsoft, amazon, ....
-    * really not alternative, but
-       * we can shortcut steps for most ZHdK users, 
-       * or disable two-step for ZHdK only (if we like to confuse users)
-    
+* The tokens send forth and back to leihs follow the [JWT](https://jwt.io/)
+  standard.
 
-leihs-auth Service
-------------------
+* Leihs supports `EC256` keys, see also [JWT](https://jwt.io/).
 
-provides: 
+* Users are associated directly or via groups to authentication systems in
+  _leihs._ 
 
-* UI/UX for signing in
-* creating and destroying user sessions
-* evaluate scopes (for tokens and sessions), benefit e.g. read only "switch to"
-* providing per request session or token evaluation for other 
-    leihs services via HTTP requests (optionally as reverse proxy)
-* optional access point for an external sign-in service: API to provide sign-in
-  via HTTP to organizational services
-
-optional: 
-* user namespace
-  * manage sessions i.e. cookies 
-  * manage API tokens
-  * change password and possibly some other user attributes 
-  * view group and role membership
-
-Codebase as small as possible with only a few dependencies
-  * fairly easy to review (for security)
-  * smaller surface for security attacks 
-
-Code is already partly implemented in Admin/API: extract and extend
-
-
-
-External Sign-In Service 
-------------------------
-* optional 
-* quite simple to implement, no UI required
-* can be combined with sync service
-* real single-sign-on is possible
-* can replace sync service: create entities on request basis;
-  not recommended (see IAM etc) but can make things quite simple
-* payload: user-id (or email, or org_id), lifetime of cookie, target_url, 
-    timestamp or onetime token (against replay attacks), send via query param 
-    of redirect (e.g. signed or encoded json web token)
-    
-
-Notes: 
-------
-
-^email1: e-mail service rewrite consumeable for all services
